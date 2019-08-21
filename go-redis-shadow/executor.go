@@ -1,5 +1,5 @@
 package main
 
 type Executor interface {
-	Execute(input byte[], s *Storage) (output byte[])
+	Execute(input []byte, s *Storage) []byte
 }
