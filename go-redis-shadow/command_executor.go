@@ -7,9 +7,11 @@ const (
 	GetString
 )
 
+// CommandExecutor ...
 type CommandExecutor struct {
 }
 
+// Execute ...
 func Execute(input []byte, s *Storage) (output []byte) {
 	return
 }

@@ -11,9 +11,9 @@ var serverAddr *net.TCPAddr
 func BenchmarkServer(b *testing.B) {
 	jobEngine := NewJobEngine(128, 32)
 
-	server := NewServer(":7379")
+	server := NewServer("localhost:7379")
 	go server.Start()
-	serverAddr, _ = net.ResolveTCPAddr("tcp4", ":7379")
+	serverAddr, _ = net.ResolveTCPAddr("tcp4", "localhost:7379")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
