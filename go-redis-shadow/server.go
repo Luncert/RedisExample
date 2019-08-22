@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
-	"log"
 	"net"
 	"strings"
+	"log"
 )
 
 // Server ...
@@ -14,6 +14,7 @@ type Server struct {
 	waitSignal chan bool
 }
 
+// NewServer ...
 func NewServer(addr string) *Server {
 	return &Server{
 		addr:       addr,
@@ -22,6 +23,7 @@ func NewServer(addr string) *Server {
 	}
 }
 
+// Start ...
 func (s *Server) Start() {
 	log.Println("Server started")
 	ln, err := net.Listen("tcp", s.addr)
@@ -47,11 +49,11 @@ func (s *Server) Start() {
 	}
 ret:
 	s.waitSignal <- true
-	log.Println("Server stoped")
+	// log.Println("Server stoped")
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	log.Println("Client", conn.RemoteAddr().String(), "connected")
+	// log.Println("Client", conn.RemoteAddr().String(), "connected")
 	for {
 		reader := bufio.NewReader(conn)
 		data, err := reader.ReadString('\n')
@@ -64,13 +66,14 @@ func (s *Server) handleConnection(conn net.Conn) {
 				log.Fatal(err)
 			}
 		}
-		log.Println(data)
+		conn.Write([]byte(data))
 	}
 ret:
 	conn.Close()
-	log.Println("Client", conn.RemoteAddr().String(), "disconnected")
+	// log.Println("Client", conn.RemoteAddr().String(), "disconnected")
 }
 
+// Stop ...
 func (s *Server) Stop() {
 	s.stopSignal <- true
 	<-s.waitSignal
