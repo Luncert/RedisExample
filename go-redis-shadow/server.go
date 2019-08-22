@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"net"
 	"strings"
-	"log"
 )
 
 // Server ...
@@ -49,11 +49,10 @@ func (s *Server) Start() {
 	}
 ret:
 	s.waitSignal <- true
-	// log.Println("Server stoped")
+	log.Println("Server stoped")
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	// log.Println("Client", conn.RemoteAddr().String(), "connected")
 	for {
 		reader := bufio.NewReader(conn)
 		data, err := reader.ReadString('\n')
@@ -70,7 +69,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}
 ret:
 	conn.Close()
-	// log.Println("Client", conn.RemoteAddr().String(), "disconnected")
 }
 
 // Stop ...
