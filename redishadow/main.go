@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	server := NewServer("localhost:7379")
+	var server Server = NewHTTPServer("localhost:7379")
 	go server.Start()
 	defer server.Stop()
 
