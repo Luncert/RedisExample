@@ -33,13 +33,15 @@ func NewHTTPServer(addr string) *HTTPServer {
 // Start ...
 func (s *HTTPServer) Start() {
 	s.router.HandleFunc("/storage/string/set", s.setString).Methods("POST")
+	s.router.HandleFunc("/storage/string/get/{key}", s.getString).Methods("GET")
 	log.Println("HTTPServer started at", s.addr)
-	s.server.ListenAndServe()
+	if err := s.server.ListenAndServe(); err != nil {
+		log.Fatal("Start server failed", err)
+	}
 }
 
 func (s *HTTPServer) setString(w http.ResponseWriter, r *http.Request) {
-	body, _ := ioutil.ReadAll(r.Body)
-	data := []byte(body)
+	data, _ := ioutil.ReadAll(r.Body)
 	key, err := jsonparser.GetString(data, "key")
 	value, err := jsonparser.GetString(data, "value")
 	if err != nil {
@@ -48,8 +50,17 @@ func (s *HTTPServer) setString(w http.ResponseWriter, r *http.Request) {
 	log.Println(key, "=", value)
 }
 
+func (s *HTTPServer) getString(w http.ResponseWriter, r *http.Request) {
+	if key, ok := mux.Vars(r)["key"]; ok {
+		w.Write([]byte(key))
+	}
+}
+
 // Stop ...
 func (s *HTTPServer) Stop() {
-	s.server.Close()
-	log.Println("HTTPServer stoped")
+	if err := s.server.Close(); err != nil {
+		log.Fatal("Stop server failed", err)
+	} else {
+		log.Println("HTTPServer stopped")
+	}
 }
