@@ -11,9 +11,10 @@ import (
 
 // HTTPServer ...
 type HTTPServer struct {
-	addr   string
-	router *mux.Router
-	server *http.Server
+	addr    string
+	router  *mux.Router
+	server  *http.Server
+	storage Storage
 }
 
 // NewHTTPServer ...
@@ -40,19 +41,33 @@ func (s *HTTPServer) Start() {
 	}
 }
 
+func (s *HTTPServer) SetStorage(storage Storage) {
+	s.storage = storage
+}
+
 func (s *HTTPServer) setString(w http.ResponseWriter, r *http.Request) {
 	data, _ := ioutil.ReadAll(r.Body)
 	key, err := jsonparser.GetString(data, "key")
 	value, err := jsonparser.GetString(data, "value")
 	if err != nil {
+		// TODO: change to Debug level
 		log.Fatal(err)
 	}
-	log.Println(key, "=", value)
+	s.storage.SetString(key, value)
 }
 
 func (s *HTTPServer) getString(w http.ResponseWriter, r *http.Request) {
+	var err error
 	if key, ok := mux.Vars(r)["key"]; ok {
-		w.Write([]byte(key))
+		if value, ok := s.storage.GetString(key); ok {
+			if _, err = w.Write([]byte(value)); err != nil {
+				log.Fatal("Write response data failed", err)
+			}
+			return
+		}
+	}
+	if _, err = w.Write([]byte("nil")); err != nil {
+		log.Fatal("Write response data", err)
 	}
 }
 

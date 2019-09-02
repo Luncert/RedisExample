@@ -12,6 +12,10 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
+func (s *MemoryStorage) Open() {
+
+}
+
 // SetString ...
 func (s *MemoryStorage) SetString(k string, v string) {
 	s.data[k] = v
@@ -26,4 +30,8 @@ func (s *MemoryStorage) GetString(k string) (v string, ok bool) {
 // DeleteKey ...
 func (s *MemoryStorage) DeleteKey(k string) {
 	delete(s.data, k)
+}
+
+func (s *MemoryStorage) Close() {
+
 }

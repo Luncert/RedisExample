@@ -6,7 +6,10 @@ import (
 )
 
 func main() {
+	var storage Storage = NewMemoryStorage()
 	var server Server = NewHTTPServer("localhost:7379")
+	server.SetStorage(storage)
+
 	go server.Start()
 	defer server.Stop()
 
