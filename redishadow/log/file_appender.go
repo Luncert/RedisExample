@@ -40,7 +40,7 @@ func newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize string) *file
 
 	f := &fileAppender{
 		logPath:           logPath,
-		logFileNamePrefix: "",
+		logFileNamePrefix: defaultLogFileNamePrefix,
 		maxSingleFileSize: defaultMaxSingleFileSize,
 		lastLogFileTag:    "",
 		logFileSequence:   0,
@@ -113,9 +113,28 @@ func newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize string) *file
 	return f
 }
 
+func (f *fileAppender) Write(data []byte) (err error) {
+	// open new log file if current log file is too large
+	if int64(len(data))+f.currentFileSize > f.maxSingleFileSize {
+		if err = f.current.Close(); err != nil {
+			return
+		} else {
+			f.openNewLogFile()
+		}
+	}
+	_, err = f.current.Write(data)
+	return
+}
+
+func (f *fileAppender) Close() (err error) {
+	err = f.current.Close()
+	f.current = nil
+	return
+}
+
 func (f *fileAppender) getLogFilePath() string {
 	return filepath.Join(f.logPath,
-		fmt.Sprint("log-", f.lastLogFileTag, "#", f.logFileSequence, ".log"))
+		fmt.Sprint(f.logFileNamePrefix, f.lastLogFileTag, "#", f.logFileSequence, ".log"))
 }
 
 func (f *fileAppender) unmarshalLogFileFullTag(logFileFullTag string) {
@@ -136,24 +155,11 @@ func (f *fileAppender) getMetadataFilePath() string {
 	return filepath.Join(f.logPath, metadataFileName)
 }
 
-func (f *fileAppender) Write(data []byte) (err error) {
-	// open new log file if current log file is too large
-	if int64(len(data))+f.currentFileSize > f.maxSingleFileSize {
-		if err = f.current.Close(); err != nil {
-			return
-		} else {
-			f.openNewLogFile()
-		}
-	}
-	_, err = f.current.Write(data)
-	return
-}
-
 func (f *fileAppender) openNewLogFile() {
 	var err error
 
 	now := time.Now()
-	logFileTag := fmt.Sprintf("%d-%d-%dT%d:%d:%d", now.Year(),
+	logFileTag := fmt.Sprintf("%d-%d-%dT%d-%d-%d", now.Year(),
 		now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 	if f.lastLogFileTag == logFileTag {
 		f.logFileSequence++
@@ -170,15 +176,9 @@ func (f *fileAppender) openNewLogFile() {
 
 	// open new log file
 	newFilePath := f.getLogFilePath()
-	f.current, err = os.OpenFile(newFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+	f.current, err = os.OpenFile(newFilePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		fatalF("Failed to open new log file: %s", newFilePath)
 	}
 	f.currentFileSize = 0
-}
-
-func (f *fileAppender) Close() (err error) {
-	err = f.current.Close()
-	f.current = nil
-	return
 }

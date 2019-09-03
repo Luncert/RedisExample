@@ -46,20 +46,26 @@ type logger struct {
 	appender  logAppender
 }
 
-func (l *logger) log(level int, v interface{}) {
+func (l *logger) log(level int, v ...interface{}) {
 	if level >= l.level {
-		if err := l.appender.Write(l.formatter.format(v)); err != nil {
+		if err := l.appender.Write(l.formatter.format(v...)); err != nil {
 			errorF("Failed to write log: %v", err)
 		}
 	}
 }
 
-var log logger
+func whenNotInitialized(level int, v ...interface{}) {
+	fatalF("Please invoke InitLogger first")
+}
 
-func init() {
-	data, err := ioutil.ReadFile("log.yml")
+var log logger
+var logFunc = whenNotInitialized
+
+func InitLogger(configFile string) {
+	// read config
+	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		fatalF("Failed to read log.yml: %v", err)
+		fatalF("Failed to read %s: %v", configFile, err)
 	}
 
 	config := make(map[interface{}]interface{})
@@ -69,6 +75,7 @@ func init() {
 		return
 	}
 
+	// create logger
 	log = logger{}
 
 	if level, ok := config["level"]; !ok || level == nil {
@@ -100,36 +107,73 @@ func init() {
 	if !ok || appenderType == nil {
 		infoF("No appender specified, using default one: stdout appender")
 	}
+	tmp, ok := config["appenderConfig"]
+	var appenderConfig map[string]interface{}
+	if ok {
+		appenderConfig = tmp.(map[string]interface{})
+	}
 	switch strings.ToLower(appenderType.(string)) {
 	case "tcp":
-		log.appender = nil
+		if appenderConfig == nil {
+			fatalF("File Appender config missing")
+		}
+		serverAddr := getConfig("serverAddr", appenderConfig).(string)
+		log.appender = newTcpAppender(serverAddr)
 	case "udp":
-		log.appender = nil
+		if appenderConfig == nil {
+			fatalF("File Appender config missing")
+		}
+		serverAddr := getConfig("serverAddr", appenderConfig).(string)
+		log.appender = newUdpAppender(serverAddr)
 	case "file":
-		log.appender = nil
+		if appenderConfig == nil {
+			fatalF("File Appender config missing")
+		}
+		logPath := getConfig("logPath", appenderConfig).(string)
+		logFileNamePrefix := getOptionalConfig("logFileNamePrefix", appenderConfig, "").(string)
+		maxSingleFileSize := getOptionalConfig("maxSingleFileSize", appenderConfig, "").(string)
+		log.appender = newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize)
 	case "stdout":
 		fallthrough
 	default:
-		log.appender = &stdoutAppender{}
+		log.appender = newStdoutAppender()
 	}
+
+	logFunc = log.log
 }
 
-func Debug(v interface{}) {
-	log.log(debugLevel, v)
+func getConfig(key string, config map[string]interface{}) interface{} {
+	value, ok := config[key]
+	if !ok || value == nil {
+		fatalF("Missing appender config `%s`", key)
+	}
+	return value
 }
 
-func Info(v interface{}) {
-	log.log(infoLevel, v)
+func getOptionalConfig(key string, config map[string]interface{}, defaultValue interface{}) interface{} {
+	value, ok := config[key]
+	if !ok || value == nil {
+		return defaultValue
+	}
+	return value
 }
 
-func Warn(v interface{}) {
-	log.log(warnLevel, v)
+func Debug(v ...interface{}) {
+	logFunc(debugLevel, v...)
 }
 
-func Error(v interface{}) {
-	log.log(errorLevel, v)
+func Info(v ...interface{}) {
+	logFunc(infoLevel, v...)
 }
 
-func Fatal(v interface{}) {
-	log.log(fatalLevel, v)
+func Warn(v ...interface{}) {
+	logFunc(warnLevel, v...)
+}
+
+func Error(v ...interface{}) {
+	logFunc(errorLevel, v...)
+}
+
+func Fatal(v ...interface{}) {
+	logFunc(fatalLevel, v...)
 }
