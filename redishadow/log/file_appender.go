@@ -2,19 +2,20 @@ package log
 
 import (
 	"fmt"
-	"github.com/Luncert/RedisExample/redishadow/util"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Luncert/RedisExample/redishadow/util"
 )
 
 const (
 	defaultLogFileNamePrefix = "log-"
 	defaultMaxSingleFileSize = 1024 * 1024 // 1MB
-	metadataFileName         = ".log.metadata"
+	metadataFileName         = ".log-metadata"
 )
 
 type fileAppender struct {
@@ -28,53 +29,59 @@ type fileAppender struct {
 }
 
 func newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize string) *fileAppender {
-	var err error
-
 	// check whether logPath refers to a directory
 	if fileInfo, err := os.Stat(logPath); err != nil {
-		fatalF("Failed to fetch file information for: %s", logPath)
+		if err = os.MkdirAll(logPath, os.ModePerm); err != nil {
+			fatalF("Failed to initial log path: %s", logPath)
+		}
 	} else if !fileInfo.IsDir() {
 		fatalF("Target log path is not a directory: %s", logPath)
 	}
 
-	f := &fileAppender{logPath: logPath}
+	f := &fileAppender{
+		logPath:           logPath,
+		logFileNamePrefix: "",
+		maxSingleFileSize: defaultMaxSingleFileSize,
+		lastLogFileTag:    "",
+		logFileSequence:   0,
+		current:           nil,
+		currentFileSize:   0,
+	}
 
-	if len(logFileNamePrefix) == 0 {
-		f.logFileNamePrefix = defaultLogFileNamePrefix
-	} else {
+	if len(logFileNamePrefix) != 0 {
 		f.logFileNamePrefix = logFileNamePrefix
 	}
 
 	// read config: maxSingleFileSize
-	if len(maxSingleFileSize) == 0 {
-		f.maxSingleFileSize = defaultMaxSingleFileSize
-	} else {
+	if len(maxSingleFileSize) != 0 {
 		readingNumber := true
 		numPart := strings.Builder{}
 		unitPart := strings.Builder{}
-		for i := range maxSingleFileSize {
+		for _, i := range maxSingleFileSize {
 			if readingNumber {
-				if util.IsDigit(i) {
+				if util.IsDigit(i) || i == '.' {
 					numPart.WriteByte(byte(i))
 				} else if util.IsAlpha(i) {
 					readingNumber = false
 					unitPart.WriteByte(byte(i))
+				} else {
+					fatalF("Failed to parse config `maxSingleFileSize` = %s", maxSingleFileSize)
 				}
 			} else if util.IsAlpha(i) {
 				unitPart.WriteByte(byte(i))
 			} else {
-				fatalF("Could not parse config `maxSingleFileSize` = %s", maxSingleFileSize)
+				fatalF("Failed to parse config `maxSingleFileSize` = %s", maxSingleFileSize)
 			}
 		}
-		f.maxSingleFileSize, err = strconv.ParseInt(numPart.String(), 10, 64)
+		tmp, err := strconv.ParseFloat(numPart.String(), 64)
 		if err != nil {
 			fatalF("Failed to parse config `maxSingleFileSize` = %s: %v", maxSingleFileSize, err)
 		}
 		switch strings.ToUpper(unitPart.String()) {
 		case "MB":
-			f.maxSingleFileSize *= 1024 * 1024
+			tmp *= 1024 * 1024
 		case "KB":
-			f.maxSingleFileSize *= 1024
+			tmp *= 1024
 		case "":
 			fallthrough
 		case "B":
@@ -82,13 +89,14 @@ func newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize string) *file
 		default:
 			fatalF("Not supported unit in `maxSingleFileSize` = %s", maxSingleFileSize)
 		}
+		f.maxSingleFileSize = int64(tmp)
 	}
 
-	// read metadata
+	// read metadata and open log file
 	if data, err := ioutil.ReadFile(f.getMetadataFilePath()); err == nil {
 		f.unmarshalLogFileFullTag(string(data))
 		logFilePath := f.getLogFilePath()
-		f.current, err = os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE, 0666)
+		f.current, err = os.OpenFile(logFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 		if err != nil {
 			fatalF("Failed to open log file `%s`: %v", logFilePath, err)
 		} else {
@@ -98,6 +106,8 @@ func newFileAppender(logPath, logFileNamePrefix, maxSingleFileSize string) *file
 				f.currentFileSize = fileInfo.Size()
 			}
 		}
+	} else {
+		f.openNewLogFile()
 	}
 
 	return f
@@ -150,9 +160,10 @@ func (f *fileAppender) openNewLogFile() {
 	} else {
 		f.logFileSequence = 0
 	}
+	f.lastLogFileTag = logFileTag
 
-	// persist logFileTag to metadata file
-	logFileFullTag := []byte(f.getLogFilePath())
+	// persist logFileFullTag to metadata file
+	logFileFullTag := []byte(f.getLogFileFullTag())
 	if err = ioutil.WriteFile(f.getMetadataFilePath(), logFileFullTag, 0666); err != nil {
 		fatalF("Failed to persist metadata: %v", err)
 	}
@@ -168,5 +179,6 @@ func (f *fileAppender) openNewLogFile() {
 
 func (f *fileAppender) Close() (err error) {
 	err = f.current.Close()
+	f.current = nil
 	return
 }

@@ -6,22 +6,23 @@ Author: Luncert
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 func infoF(format string, a ...interface{}) {
-	fmt.Printf("[INFO] %s", fmt.Sprintf(format, a...))
+	fmt.Printf("[INFO] %s\n", fmt.Sprintf(format, a...))
 }
 
 func errorF(format string, a ...interface{}) {
-	fmt.Printf("[ERROR] %s", fmt.Sprintf(format, a...))
+	fmt.Printf("[ERROR] %s\n", fmt.Sprintf(format, a...))
 }
 
 func fatalF(format string, a ...interface{}) {
-	fmt.Printf("[FATAL] %s", fmt.Sprintf(format, a...))
+	fmt.Printf("[FATAL] %s\n", fmt.Sprintf(format, a...))
 	os.Exit(1)
 }
 
@@ -70,7 +71,7 @@ func init() {
 
 	log = logger{}
 
-	if level, ok := config["level"]; !ok {
+	if level, ok := config["level"]; !ok || level == nil {
 		fatalF("Config missing: level")
 	} else {
 		switch strings.ToLower(level.(string)) {
@@ -89,15 +90,15 @@ func init() {
 		}
 	}
 
-	if format, ok := config["format"]; !ok {
+	if format, ok := config["format"]; !ok || format == nil {
 		fatalF("Config missing: format")
 	} else {
 		log.formatter = newFormatter(format.(string))
 	}
 
 	appenderType, ok := config["appender"]
-	if !ok {
-		infoF("No appender defined, using default one: stdout appender")
+	if !ok || appenderType == nil {
+		infoF("No appender specified, using default one: stdout appender")
 	}
 	switch strings.ToLower(appenderType.(string)) {
 	case "tcp":
