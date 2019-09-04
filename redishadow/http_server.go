@@ -2,9 +2,9 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 
+	"github.com/Luncert/RedisExample/redishadow/log"
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/mux"
 )
@@ -35,9 +35,12 @@ func NewHTTPServer(addr string) *HTTPServer {
 func (s *HTTPServer) Start() {
 	s.router.HandleFunc("/storage/string/set", s.setString).Methods("POST")
 	s.router.HandleFunc("/storage/string/get/{key}", s.getString).Methods("GET")
-	log.Println("HTTPServer started at", s.addr)
+	log.Info("HTTPServer started at", s.addr)
+	// ListenAndServe only returns
 	if err := s.server.ListenAndServe(); err != nil {
-		log.Fatal("Start server failed", err)
+		if err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -76,6 +79,6 @@ func (s *HTTPServer) Stop() {
 	if err := s.server.Close(); err != nil {
 		log.Fatal("Stop server failed", err)
 	} else {
-		log.Println("HTTPServer stopped")
+		log.Info("HTTPServer stopped")
 	}
 }

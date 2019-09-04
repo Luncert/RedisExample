@@ -27,13 +27,23 @@ func fatalF(format string, a ...interface{}) {
 }
 
 // log level
+type logLevel int
+
 const (
-	debugLevel = iota
+	debugLevel logLevel = iota
 	infoLevel
 	warnLevel
 	errorLevel
 	fatalLevel
 )
+
+var logLevelNameArray = []string{"DEBUG", "INFO",
+	"WARN", "ERROR", "FATAL",
+}
+
+func (l logLevel) string() string {
+	return logLevelNameArray[l]
+}
 
 type logAppender interface {
 	Write(data []byte) error
@@ -41,24 +51,24 @@ type logAppender interface {
 }
 
 type logger struct {
-	level     int
+	level     logLevel
 	formatter *logFormatter
 	appender  logAppender
 }
 
-func (l *logger) log(level int, v ...interface{}) {
+func (l *logger) log(level logLevel, v ...interface{}) {
 	if level >= l.level {
-		if err := l.appender.Write(l.formatter.format(v...)); err != nil {
+		if err := l.appender.Write(l.formatter.format(level, v...)); err != nil {
 			errorF("Failed to write log: %v", err)
 		}
 	}
 }
 
-func whenNotInitialized(level int, v ...interface{}) {
+func whenNotInitialized(level logLevel, v ...interface{}) {
 	fatalF("Please invoke InitLogger first")
 }
 
-var log logger
+var log *logger
 var logFunc = whenNotInitialized
 
 func InitLogger(configFile string) {
@@ -76,7 +86,7 @@ func InitLogger(configFile string) {
 	}
 
 	// create logger
-	log = logger{}
+	log = &logger{}
 
 	if level, ok := config["level"]; !ok || level == nil {
 		fatalF("Config missing: level")
@@ -100,7 +110,7 @@ func InitLogger(configFile string) {
 	if format, ok := config["format"]; !ok || format == nil {
 		fatalF("Config missing: format")
 	} else {
-		log.formatter = newFormatter(format.(string))
+		log.formatter = newLogFormatter(format.(string))
 	}
 
 	appenderType, ok := config["appender"]
@@ -108,9 +118,9 @@ func InitLogger(configFile string) {
 		infoF("No appender specified, using default one: stdout appender")
 	}
 	tmp, ok := config["appenderConfig"]
-	var appenderConfig map[string]interface{}
+	var appenderConfig map[interface{}]interface{}
 	if ok {
-		appenderConfig = tmp.(map[string]interface{})
+		appenderConfig = tmp.(map[interface{}]interface{})
 	}
 	switch strings.ToLower(appenderType.(string)) {
 	case "tcp":
@@ -142,7 +152,14 @@ func InitLogger(configFile string) {
 	logFunc = log.log
 }
 
-func getConfig(key string, config map[string]interface{}) interface{} {
+func DestroyLogger() {
+	if err := log.appender.Close(); err != nil {
+		fatalF("failed to destroy logger: %v ", err)
+	}
+	log = nil
+}
+
+func getConfig(key string, config map[interface{}]interface{}) interface{} {
 	value, ok := config[key]
 	if !ok || value == nil {
 		fatalF("Missing appender config `%s`", key)
@@ -150,7 +167,7 @@ func getConfig(key string, config map[string]interface{}) interface{} {
 	return value
 }
 
-func getOptionalConfig(key string, config map[string]interface{}, defaultValue interface{}) interface{} {
+func getOptionalConfig(key string, config map[interface{}]interface{}, defaultValue interface{}) interface{} {
 	value, ok := config[key]
 	if !ok || value == nil {
 		return defaultValue
