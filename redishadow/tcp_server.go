@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"log"
+	"github.com/Luncert/RedisExample/redishadow/log"
 	"net"
 	"strings"
 )
@@ -25,14 +25,16 @@ func NewTCPServer(addr string) *TCPServer {
 
 // Start ...
 func (s *TCPServer) Start() {
-	log.Println("TCPServer started at", s.addr)
+	log.Info("TCPServer started at", s.addr)
 	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	go func() {
 		<-s.stopSignal
-		ln.Close()
+		if err = ln.Close(); err != nil {
+			log.Fatal(err)
+		}
 	}()
 	for {
 		conn, err := ln.Accept()
@@ -49,7 +51,7 @@ func (s *TCPServer) Start() {
 	}
 ret:
 	s.waitSignal <- true
-	log.Println("TCPServer stoped")
+	log.Info("TCPServer stopped")
 }
 
 func (s *TCPServer) handleConnection(conn net.Conn) {
@@ -65,10 +67,15 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 				log.Fatal(err)
 			}
 		}
-		conn.Write([]byte(data))
+		if _, err = conn.Write([]byte(data)); err != nil {
+			log.Fatal(err)
+		}
 	}
 ret:
 	conn.Close()
+}
+
+func (s *TCPServer) SetStorage(storage Storage) {
 }
 
 // Stop ...

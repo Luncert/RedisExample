@@ -11,7 +11,7 @@ func main() {
 	defer log.DestroyLogger()
 
 	var storage Storage = NewMemoryStorage()
-	var server Server = NewHTTPServer("localhost:7379")
+	var server Server = NewTCPServer("localhost:7379")
 	server.SetStorage(storage)
 
 	go server.Start()
