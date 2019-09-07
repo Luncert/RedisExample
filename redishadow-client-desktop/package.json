@@ -1,0 +1,17 @@
+{
+  "name": "redishadow-client-desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./build/main.js",
+  "scripts": {
+    "prestart": "tsc",
+    "start": "electron ."
+  },
+  "author": "Luncert",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/electron": "^1.6.10",
+    "electron": "6.0.7",
+    "typescript": "^3.6.2"
+  }
+}
