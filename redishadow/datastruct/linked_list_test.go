@@ -1,6 +1,9 @@
 package datastruct
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestAddNodeHead(t *testing.T) {
 	list := NewLinkedList()
@@ -183,12 +186,12 @@ func TestFirstLast(t *testing.T) {
 	if ret := list.First(); ret == nil {
 		t.Errorf("epxect *LinkedNode, got nil")
 	} else if ret.value != "1" {
-		t.Errorf("expect 1, got: %s", ret)
+		t.Errorf("expect 1, got: %s", ret.value)
 	}
 	if ret := list.Last(); ret == nil {
 		t.Errorf("epxect *LinkedNode, got nil")
 	} else if ret.value != "1" {
-		t.Errorf("expect 1, got: %s", ret)
+		t.Errorf("expect 1, got: %s", ret.value)
 	}
 }
 
@@ -225,6 +228,18 @@ func TestAtSearchIndex(t *testing.T) {
 	if i != 1 {
 		t.Error("Incorrect result")
 	}
+}
+
+func ExampleForEach() {
+	list := NewLinkedList().
+		Append("testing").
+		Append("ForEach").
+		Append("function").
+		Append("#1")
+	list.ForEach(func(value interface{}) {
+		fmt.Printf("%v,", value)
+	})
+	// Output: testing,ForEach,function,#1,
 }
 
 func TestRemoveAt(t *testing.T) {

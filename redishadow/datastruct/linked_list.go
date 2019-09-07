@@ -71,6 +71,14 @@ func (l *LinkedList) Index(value interface{}) int {
 	return -1
 }
 
+func (l *LinkedList) ForEach(call func(value interface{})) {
+	node := l.head
+	for i := 0; i < l.len; i++ {
+		call(node.value)
+		node = node.next
+	}
+}
+
 // create
 
 func (l *LinkedList) AddNodeHead(value interface{}) *LinkedNode {
