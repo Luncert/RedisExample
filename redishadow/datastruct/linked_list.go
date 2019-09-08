@@ -43,6 +43,15 @@ func (l *LinkedList) At(index int) *LinkedNode {
 	return node
 }
 
+func (l *LinkedList) Get(index int) (value interface{}, ok bool) {
+	node := l.At(index)
+	if node != nil {
+		value = node.value
+		ok = true
+	}
+	return
+}
+
 func (l *LinkedList) Last() *LinkedNode {
 	return l.tail
 }
@@ -151,7 +160,7 @@ func (l *LinkedList) InsertAfter(index int, value interface{}) *LinkedNode {
 	return node
 }
 
-func (l *LinkedList) Append(value interface{}) *LinkedList {
+func (l *LinkedList) Append(value interface{}) List {
 	node := &LinkedNode{
 		prev:  l.tail,
 		next:  nil,
@@ -182,9 +191,18 @@ func (l *LinkedList) Pop() interface{} {
 	return node.value
 }
 
+func (l *LinkedList) Set(index int, value interface{}) (oldValue interface{}) {
+	node := l.At(index)
+	if node != nil {
+		oldValue = node.value
+		node.value = value
+	}
+	return
+}
+
 // remove
 
-func (l *LinkedList) RemoveAt(index int) interface{} {
+func (l *LinkedList) Remove(index int) interface{} {
 	l.checkIndex(index)
 
 	var node *LinkedNode

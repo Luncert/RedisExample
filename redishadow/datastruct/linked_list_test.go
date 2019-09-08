@@ -199,7 +199,7 @@ func TestAtSearchIndex(t *testing.T) {
 	list := NewLinkedList().
 		Append("node1").
 		Append("node2").
-		Append("node3")
+		Append("node3").(*LinkedList)
 
 	list.SetMatchMethod(func(v1, v2 interface{}) bool {
 		return v1 == v2
@@ -248,15 +248,15 @@ func TestRemoveAt(t *testing.T) {
 		Append("node2").
 		Append("node3")
 
-	v := list.RemoveAt(2)
+	v := list.Remove(2)
 	if v != "node3" {
 		t.Error("Incorrect result")
 	}
-	v = list.RemoveAt(1)
+	v = list.Remove(1)
 	if v != "node2" {
 		t.Error("Incorrect result")
 	}
-	v = list.RemoveAt(0)
+	v = list.Remove(0)
 	if v != "node1" {
 		t.Error("Incorrect result")
 	}
@@ -269,7 +269,7 @@ func TestReset(t *testing.T) {
 	list := NewLinkedList().
 		Append("node1").
 		Append("node2").
-		Append("node3")
+		Append("node3").(*LinkedList)
 
 	list.Reset()
 	if list.head != nil || list.tail != nil || list.len != 0 {
