@@ -43,13 +43,12 @@ func (l *LinkedList) At(index int) *LinkedNode {
 	return node
 }
 
-func (l *LinkedList) Get(index int) (value interface{}, ok bool) {
+func (l *LinkedList) Get(index int) interface{} {
 	node := l.At(index)
 	if node != nil {
-		value = node.value
-		ok = true
+		return node.value
 	}
-	return
+	panic("[LinkedList] index out of range")
 }
 
 func (l *LinkedList) Last() *LinkedNode {

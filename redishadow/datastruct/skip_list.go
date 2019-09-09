@@ -3,23 +3,23 @@ package datastruct
 type SkipList struct {
 	head *skipListNode
 	tail *skipListNode
-	len  int
+	size int
 }
 
 func (s *SkipList) Size() int {
-
+	return s.size
 }
 
 func (s *SkipList) IsEmpty() bool {
-
+	return s.size == 0
 }
 
-func (s *SkipList) Get(index int) (interface{}, bool) {
-
+func (s *SkipList) Get(index int) interface{} {
+	return nil
 }
 
 func (s *SkipList) Index(value interface{}) int {
-
+	return -1
 }
 
 func (s *SkipList) ForEach(call func(value interface{})) {
@@ -27,19 +27,19 @@ func (s *SkipList) ForEach(call func(value interface{})) {
 }
 
 func (s *SkipList) Append(value interface{}) List {
-
+	return s
 }
 
 func (s *SkipList) Pop() interface{} {
-
+	return nil
 }
 
 func (s *SkipList) Set(index int, value interface{}) interface{} {
-
+	return nil
 }
 
 func (s *SkipList) Remove(index int) interface{} {
-
+	return nil
 }
 
 func (s *SkipList) Reset() {
